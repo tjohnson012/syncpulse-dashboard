@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncPulse - Financial System Monitor</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-default: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-green: #238636;
+            --accent-red: #da3633;
+            --accent-yellow: #d29922;
+            --accent-blue: #1f6feb;
+            --accent-purple: #8957e5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-default);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .system-status {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.3rem;
+        }
+
+        .status-healthy { background: var(--accent-green); animation: pulse-green 2s infinite; }
+        .status-warning { background: var(--accent-yellow); }
+        .status-critical { background: var(--accent-red); animation: pulse-red 1.5s infinite; }
+
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-default);
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .nav-item.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .main-content {
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: var(--bg-primary);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .widget {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+
+        .widget:hover {
+            transform: translateY(-2px);
+        }
+
+        .widget-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-default);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .widget-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .widget-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: var(--accent-blue);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #0969da;
+        }
+
+        .btn-success { background: var(--accent-green); }
+        .btn-warning { background: var(--accent-yellow); }
+        .btn-danger { background: var(--accent-red); }
+
+        .widget-content {
+            padding: 1rem;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-default);
+            position: relative;
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: help;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .trend-arrow {
+            font-size: 0.7rem;
+        }
+
+        .trend-up { color: var(--accent-green); }
+        .trend-down { color: var(--accent-red); }
+
+        .health-score {
+            text-align: center;
+            padding: 2rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .health-score:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(var(--accent-green) 0deg 252deg, var(--border-default) 252deg 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            position: relative;
+        }
+
+        .score-circle::before {
+            content: '';
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+        }
+
+        .score-number {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .alert-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--accent-red);
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .alert-title {
+            color: var(--accent-red);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .roi-metric {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .roi-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-green);
+            margin-bottom: 0.25rem;
+        }
+
+        .roi-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .partner-card {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: background 0.2s;
+        }
+
+        .partner-card:hover {
+            background: #2d333b;
+        }
+
+        .partner-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .partner-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .partner-score {
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .score-excellent { background: var(--accent-green); color: white; }
+        .score-good { background: var(--accent-blue); color: white; }
+        .score-warning { background: var(--accent-yellow); color: black; }
+        .score-poor { background: var(--accent-red); color: white; }
+
+        .partner-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .partner-metric {
+            text-align: center;
+        }
+
+        .partner-metric-value {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .partner-metric-label {
+            color: var(--text-secondary);
+        }
+
+        .ml-model-card {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .model-name {
+            font-weight: 600;
+        }
+
+        .model-status {
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .model-metrics {
+            display: flex;
+            gap: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-default);
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            z-index: 1000;
+            max-width: 200px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background: var(--border-default);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-green);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(20px);
+        }
+
+        .compliance-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .compliance-warning {
+            background: var(--accent-yellow);
+            color: black;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .wide {
+            grid-column: span 2;
+        }
+
+        .drilldown-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .drilldown-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .drilldown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .score-breakdown {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .breakdown-bar {
+            width: 100px;
+            height: 6px;
+            background: var(--border-default);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .breakdown-fill {
+            height: 100%;
+            background: var(--accent-green);
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .system-status {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <span>⚡</span>
+            SyncPulse Monitor
+        </div>
+        <div class="system-status">
+            <span><span class="status-dot status-healthy"></span>System: Healthy</span>
+            <span><span class="status-dot status-critical"></span>Alerts: 3 Critical</span>
+            <span><span class="status-dot status-warning"></span>Latency: 47ms</span>
+            <span class="compliance-badge">✓ SOX Compliant</span>
+            <span>Data Mode: 
+                <div class="toggle-switch" id="dataToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+                Live
+            </span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="nav-section">
+                <div class="nav-title">System Health</div>
+                <div class="nav-item active">📊 Overview</div>
+                <div class="nav-item">🔥 Real-time Events</div>
+                <div class="nav-item">⚠️ Alert Manager</div>
+                <div class="nav-item">📈 ROI Analytics</div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">Financial Stack</div>
+                <div class="nav-item">💳 Credit Pipeline</div>
+                <div class="nav-item">🤝 Partner Network</div>
+                <div class="nav-item">🛡️ Fraud Detection</div>
+                <div class="nav-item">📱 Customer Health</div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">ML/DevOps</div>
+                <div class="nav-item">🧠 Model Monitor</div>
+                <div class="nav-item">🚀 Deployments</div>
+                <div class="nav-item">📝 Audit Logs</div>
+                <div class="nav-item">⚙️ API Status</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="dashboard-grid">
+                <!-- Health Score Widget -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title">💓 Financial Health Pulse</div>
+                        <div class="widget-controls">
+                            <button class="btn" onclick="showDrilldown()">Drill Down</button>
+                        </div>
+                    </div>
+                    <div class="widget-content">
+                        <div class="health-score" onclick="showDrilldown()">
+                            <div class="score-circle">
+                                <div class="score-number">847</div>
+                            </div>
+                            <div style="color: var(--accent-green); font-weight: 600;">HEALTHY</div>
+                            <div style="color: var(--text-secondary); font-size: 0.8rem;">
+                                <span class="trend-arrow trend-up">↗</span> +23 pts (24h)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Critical Alerts Widget -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title">🚨 Critical Alerts</div>
+                    </div>
+                    <div class="widget-content">
+                        <div class="alert-box">
+                            <div class="alert-title">
+                                HIGH_RISK_SURGE
+                                <span style="color: var(--text-secondary); font-size: 0.7rem;">2m ago</span>
+                            </div>
+                            <div>247 customers moved to red zone in last hour</div>
+                            <div class="alert-actions">
+                                <button class="btn btn-danger">Investigate</button>
+                                <button class="btn">Assign to Team</button>
+                                <button class="btn">Resolve</button>
+                            </div>
+                        </div>
+                        <div class="alert-box">
+                            <div class="alert-title">
+                                PARTNER_DEGRADATION
+                                <span style="color: var(--text-secondary); font-size: 0.7rem;">5m ago</span>
+                            </div>
+                            <div>Home Depot satisfaction score dropped 12%</div>
+                            <div class="alert-actions">
+                                <button class="btn btn-warning">Review</button>
+                                <button class="btn">Escalate</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROI Impact Widget -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title">💰 Real-Time ROI Impact</div>
+                    </div>
+                    <div class="widget-content">
+                        <div class="roi-metric">
+                            <div class="roi-value">$847K</div>
+                            <div class="roi-label">Fraud Prevention (7 days)</div>
+                        </div>
+                        <div class="roi-metric">
+                            <div class="roi-value">$1.2M</div>
+                            <div class="roi-label">Default Prevention (30 days)</div>
+                        </div>
+                        <div class="roi-metric">
+                            <div class="roi-value">$234K</div>
+                            <div class="roi-label">Churn Prevention (24h)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partner Insights Widget -->
+                <div class="widget wide">
+                    <div class="widget-header">
+                        <div class="widget-title">🤝 Partner Ecosystem Health</div>
+                    </div>
+                    <div class="widget-content">
+                        <div class="partner-card">
+                            <div class="partner-header">
+                                <span class="partner-name">Amazon</span>
+                                <span class="partner-score score-excellent">94</span>
+                            </div>
+                            <div class="partner-metrics">
+                                <div class="partner-metric">
+                                    <div class="partner-metric-value">1.2%</div>
+                                    <div class="partner-metric-label">Delinquency</div>
+                                </div>
+                                <div class="partner-metric">
+                                    <div class="partner-metric-value">0.3%</div>
+                                    <div class="partner-metric-label">Fraud Rate</div>
+                                </div>
+                                <div class="partner-metric">
+                                    <div class="partner-metric-value">87</div>
+                                    <div class="partner-metric-label">NPS Score</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="partner-card">
+                            <div class="partner-header">
+                                <span class="partner-name">Home Depot</span>
+                                <span class="partner-score score-warning">78</span>
+                            </div>
+                            <div class="partner-metrics">
+                                <div class="partner-metric">
+                                    <div class="partner-metric-value">3.1%</div>
+                                    <div class="partner-metric-label">Delinquency</div>
+                                </div>
+                                <div class="partner-metric">
+                                    <div class="partner-metric-value">0.8%</div>
+                                    <div class="partner-metric-label">Fraud Rate</div>
+                                </div>
+                                <div class="partner-metric">
+                                    <div class="partner-metric-value">71</div>
+                                    <div class="partner-metric-label">NPS Score</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Performance Widget -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title">⚡ System Performance</div>
+                    </div>
+                    <div class="widget-content">
+                        <div class="metric-row">
+                            <span class="metric-label" data-tooltip="Real-time transaction processing rate">Transaction Throughput</span>
+                            <span class="metric-value" style="color: var(--accent-green);">
+                                2,847/sec <span class="trend-arrow trend-up">↗</span>
+                            </span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label" data-tooltip="ML model response time for risk scoring">ML Model Latency</span>
+                            <span class="metric-value" style="color: var(--accent-yellow);">
+                                47ms <span class="trend-arrow trend-up">↗</span>
+                            </span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label" data-tooltip="Percentage of fraud successfully detected">Fraud Detection Rate</span>
+                            <span class="metric-value" style="color: var(--accent-green);">
+                                99.7% <span class="trend-arrow trend-up">↗</span>
+                            </span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label" data-tooltip="Average API response time across all endpoints">API Response Time</span>
+                            <span class="metric-value" style="color: var(--accent-green);">
+                                23ms <span class="trend-arrow trend-down">↘</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ML Models Monitor -->
+                <div class="widget full-width">
+                    <div class="widget-header">
+                        <div class="widget-title">🧠 ML Models Status</div>
+                    </div>
+                    <div class="widget-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="ml-model-card">
+                                <div class="model-header">
+                                    <span class="model-name">XGBoost Risk Scorer v2.1</span>
+                                    <span class="model-status">ACTIVE</span>
+                                </div>
+                                <div class="model-metrics">
+                                    <span>Accuracy: 94.2%</span>
+                                    <span>Latency: 12ms</span>
+                                </div>
+                            </div>
+                            <div class="ml-model-card">
+                                <div class="model-header">
+                                    <span class="model-name">LSTM Fraud Detector v1.8</span>
+                                    <span class="model-status">ACTIVE</span>
+                                </div>
+                                <div class="model-metrics">
+                                    <span>Precision: 99.1%</span>
+                                    <span>Latency: 8ms</span>
+                                </div>
+                            </div>
+                            <div class="ml-model-card">
+                                <div class="model-header">
+                                    <span class="model-name">Prophet Forecaster v3.0</span>
+                                    <span class="model-status">ACTIVE</span>
+                                </div>
+                                <div class="model-metrics">
+                                    <span>MAPE: 3.1%</span>
+                                    <span>Latency: 45ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pulse Score Drilldown Modal -->
+    <div class="drilldown-modal" id="drilldownModal">
+        <div class="drilldown-content">
+            <div class="drilldown-header">
+                <h3>Financial Health Score Breakdown</h3>
+                <button class="close-btn" onclick="hideDrilldown()">&times;</button>
+            </div>
+            <div class="score-breakdown">
+                <div class="breakdown-item">
+                    <div>
+                        <div style="font-weight: 600;">Credit Behavior (35%)</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Payment history, utilization, age of accounts</div>
+                    </div>
+                    <div>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: 92%;"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 0.25rem;">92/100</div>
+                    </div>
+                </div>
+                <div class="breakdown-item">
+                    <div>
+                        <div style="font-weight: 600;">Partner Performance (25%)</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Transaction success, customer satisfaction</div>
+                    </div>
+                    <div>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: 78%;"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 0.25rem;">78/100</div>
+                    </div>
+                </div>
+                <div class="breakdown-item">
+                    <div>
+                        <div style="font-weight: 600;">Market Conditions (20%)</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Economic indicators, industry trends</div>
+                    </div>
+                    <div>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: 89%;"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 0.25rem;">89/100</div>
+                    </div>
+                </div>
+                <div class="breakdown-item">
+                    <div>
+                        <div style="font-weight: 600;">Fraud Risk (20%)</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Anomaly detection, pattern analysis</div>
+                    </div>
+                    <div>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: 96%;"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 0.25rem;">96/100</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 4px;">
+                <strong>Composite Score: 847/1000</strong><br>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                    Algorithm: Weighted ensemble of risk factors with real-time market adjustments
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip Element -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Tooltip functionality
+        function setupTooltips() {
+            const tooltipElements = document.querySelectorAll('[data-tooltip]');
+            const tooltip = document.getElementById('tooltip');
+
+            tooltipElements.forEach(element => {
+                element.addEventListener('mouseenter', (e) => {
+                    const text = e.target.getAttribute('data-tooltip');
+                    tooltip.textContent = text;
+                    tooltip.classList.add('show');
+                    
+                    const rect = e.target.getBoundingClientRect();
+                    tooltip.style.left = rect.left + 'px';
+                    tooltip.style.top = (rect.bottom + 5) + 'px';
+                });
+
+                element.addEventListener('mouseleave', () => {
+                    tooltip.classList.remove('show');
+                });
+            });
+        }
+
+        // Data mode toggle
+        function setupDataToggle() {
+            const toggle = document.getElementById('dataToggle');
+            let isLive = true;
+
+            toggle.addEventListener('click', () => {
+                isLive = !isLive;
+                toggle.classList.toggle('active', isLive);
+                
+                // Update the text next to toggle
+                const statusText = toggle.nextSibling;
+                statusText.textContent = isLive ? ' Live' : ' Simulated';
+                
+                // In a real implementation, this would switch data sources
+                console.log(`Data mode switched to: ${isLive ? 'Live' : 'Simulated'}`);
+            });
+        }
+
+        // Drilldown modal functionality
+        function showDrilldown() {
+            document.getElementById('drilldownModal').style.display = 'flex';
+        }
+
+        function hideDrilldown() {
+            document.getElementById('drilldownModal').style.display = 'none';
+        }
+
+        // Alert action handlers
+        function setupAlertActions() {
+            document.querySelectorAll('.alert-actions .btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const action = this.textContent;
+                    
+                    // Simulate API call
+                    this.textContent = 'Processing...';
+                    this.disabled = true;
+                    
+                    setTimeout(() => {
+                        this.textContent = action + ' ✓';
+                        this.style.background = 'var(--accent-green)';
+                    }, 1500);
+                });
+            });
+        }
+
+        // Navigation functionality
+        function setupNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // In a real app, this would load different dashboard views
+                    console.log(`Navigated to: ${this.textContent}`);
+                });
+            });
+        }
+
+        // Simulate real-time updates
+        function simulateRealTimeUpdates() {
+            // Update health score occasionally
+            setInterval(() => {
+                const scoreEl = document.querySelector('.score-number');
+                const currentScore = parseInt(scoreEl.textContent);
+                const change = Math.floor(Math.random() * 5) - 2; // -2 to +2
+                const newScore = Math.max(800, Math.min(900, currentScore + change));
+                scoreEl.textContent = newScore;
+                
+                // Update ROI values
+                const roiValues = document.querySelectorAll('.roi-value');
+                roiValues.forEach(el => {
+                    const current = parseFloat(el.textContent.replace(/[$K]/g, ''));
+                    const newValue = current + (Math.random() * 10 - 5);
+                    el.textContent = `${Math.round(newValue)}K`;
+                });
+            }, 8000);
+
+            // Update partner scores
+            setInterval(() => {
+                const partnerScores = document.querySelectorAll('.partner-score');
+                partnerScores.forEach(score => {
+                    const current = parseInt(score.textContent);
+                    const change = Math.floor(Math.random() * 3) - 1;
+                    const newScore = Math.max(50, Math.min(100, current + change));
+                    score.textContent = newScore;
+                    
+                    // Update score class based on value
+                    score.className = 'partner-score';
+                    if (newScore >= 90) score.classList.add('score-excellent');
+                    else if (newScore >= 80) score.classList.add('score-good');
+                    else if (newScore >= 70) score.classList.add('score-warning');
+                    else score.classList.add('score-poor');
+                });
+            }, 12000);
+
+            // Update system metrics
+            setInterval(() => {
+                const metrics = document.querySelectorAll('.metric-value');
+                metrics.forEach(metric => {
+                    const text = metric.textContent;
+                    if (text.includes('/sec')) {
+                        const current = parseInt(text.split(',').join(''));
+                        const newValue = current + Math.floor(Math.random() * 200) - 100;
+                        metric.innerHTML = `${newValue.toLocaleString()}/sec <span class="trend-arrow trend-up">↗</span>`;
+                    } else if (text.includes('ms')) {
+                        const current = parseInt(text);
+                        const newValue = Math.max(10, current + Math.floor(Math.random() * 10) - 5);
+                        const trend = newValue < current ? 'trend-down' : 'trend-up';
+                        const arrow = newValue < current ? '↘' : '↗';
+                        metric.innerHTML = `${newValue}ms <span class="trend-arrow ${trend}">${arrow}</span>`;
+                    }
+                });
+            }, 5000);
+        }
+
+        // API endpoint simulation (for demo purposes)
+        const apiEndpoints = {
+            '/api/pulse': () => ({
+                score: 847,
+                status: 'healthy',
+                trend: '+23',
+                breakdown: {
+                    creditBehavior: 92,
+                    partnerPerformance: 78,
+                    marketConditions: 89,
+                    fraudRisk: 96
+                }
+            }),
+            '/api/partners': () => ([
+                { name: 'Amazon', score: 94, delinquency: 1.2, fraud: 0.3, nps: 87 },
+                { name: 'Home Depot', score: 78, delinquency: 3.1, fraud: 0.8, nps: 71 },
+                { name: 'Walmart', score: 91, delinquency: 1.8, fraud: 0.4, nps: 82 },
+                { name: 'Target', score: 89, delinquency: 2.1, fraud: 0.5, nps: 79 }
+            ]),
+            '/api/alerts': () => ([
+                {
+                    id: 'ALERT_001',
+                    type: 'HIGH_RISK_SURGE',
+                    severity: 'critical',
+                    message: '247 customers moved to red zone in last hour',
+                    timestamp: '2024-07-31T14:32:47Z',
+                    actions: ['investigate', 'assign', 'resolve']
+                },
+                {
+                    id: 'ALERT_002',
+                    type: 'PARTNER_DEGRADATION',
+                    severity: 'warning',
+                    message: 'Home Depot satisfaction score dropped 12%',
+                    timestamp: '2024-07-31T14:27:12Z',
+                    actions: ['review', 'escalate']
+                }
+            ]),
+            '/api/roi': () => ({
+                fraudPrevention: { amount: 847000, period: '7 days' },
+                defaultPrevention: { amount: 1200000, period: '30 days' },
+                churnPrevention: { amount: 234000, period: '24 hours' }
+            }),
+            '/api/models': () => ([
+                {
+                    name: 'XGBoost Risk Scorer',
+                    version: 'v2.1',
+                    status: 'active',
+                    accuracy: 94.2,
+                    latency: 12
+                },
+                {
+                    name: 'LSTM Fraud Detector',
+                    version: 'v1.8',
+                    status: 'active',
+                    precision: 99.1,
+                    latency: 8
+                },
+                {
+                    name: 'Prophet Forecaster',
+                    version: 'v3.0',
+                    status: 'active',
+                    mape: 3.1,
+                    latency: 45
+                }
+            ])
+        };
+
+        // Initialize dashboard
+        function init() {
+            setupTooltips();
+            setupDataToggle();
+            setupAlertActions();
+            setupNavigation();
+            simulateRealTimeUpdates();
+            
+            // Add click outside to close modal
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('drilldown-modal')) {
+                    hideDrilldown();
+                }
+            });
+
+            console.log('🚀 SyncPulse Dashboard initialized');
+            console.log('📡 API Endpoints available:', Object.keys(apiEndpoints));
+            console.log('🔄 Real-time updates started');
+            console.log('📊 Streaming data from:', window.location.origin + '/stream/financial-events');
+        }
+
+        // Start the dashboard
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Expose API simulation for demo
+        window.syncPulseAPI = {
+            get: (endpoint) => {
+                if (apiEndpoints[endpoint]) {
+                    return Promise.resolve(apiEndpoints[endpoint]());
+                }
+                return Promise.reject(new Error(`Endpoint ${endpoint} not found`));
+            },
+            endpoints: Object.keys(apiEndpoints)
+        };
+    </script>
+</body>
+</html>
